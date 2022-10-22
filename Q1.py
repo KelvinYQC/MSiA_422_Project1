@@ -1,7 +1,5 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
-import os
 from collections import defaultdict
 
 class BabyNames:
@@ -83,14 +81,28 @@ class BabyNames:
     def count(self, state, year):
         if state and year:  # return state and year value.
             return sum(self.dat[(self.dat['year'] == year) & (self.dat['state'] == state)]["births"])
-        else:  # return count of empty values
-            return (sum(self.dat[(self.dat['year'] == year) & (self.dat['state'] == state)]["births"]))
+        elif state and not year:  # return count of empty values
+            return (sum(self.dat[(self.dat['state'] == state)]["births"]))
+        elif not state and year:
+            return (sum(self.dat["births"]))
 
     def top10Names(self, state, year):
-        unranked_df = self.dat[(self.dat['year'] == year) & (self.dat['state'] == state)]
+        # check state and year value
+        if state and year:
+            unranked_df = self.dat[(self.dat['year'] == year) & (self.dat['state'] == state)]
+        elif state and not year:  # return count of empty values
+            unranked_df = self.dat[(self.dat['state'] == state)]
+        elif not state and year:
+            unranked_df = self.dat[(self.dat['year'] == year)]
+        else:
+            unranked_df = self.dat
+        # group by data by name and sex to find sum of births counts
+        unranked_df = pd.DataFrame(unranked_df.groupby(["sex", 'name']).sum(['births']).reset_index())
+        # rank the data
         unranked_df["ranking"] = unranked_df.groupby("sex")['births'].rank(method='min', ascending=False)
-        # unranked_df.set_index('ranking')
+        # choose top 10 data
         df_cleaned = unranked_df[(unranked_df['ranking'] <= 10)][['name', 'sex', 'ranking']]  # select columns
+        # pivot the table
         new_table = df_cleaned.pivot_table(index='ranking', columns='sex', values='name', aggfunc=lambda x: x)
         return new_table
 
@@ -154,15 +166,13 @@ class BabyNames:
 
 
 
-
-
-
 a = BabyNames('/Users/kelvin/Desktop/MSiA/MSiA_422_python-java/Projects/namesbystate')
 
 name='John'
 yearRange=(1910,2020)
 state='AK'
 sex='M'
+print(a.count('',' '))
 print(a.top10Names(state, 1910))
 print(a.ChangeOfPopularity(1910, 1915, 10))
 print(a.NamePopularityPlot(name, yearRange, state, sex))
